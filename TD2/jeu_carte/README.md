@@ -29,7 +29,7 @@ une configuration de partie (voir `DeckBuilder` ci-dessous).
 ## Tests
 
 ```bash
-mvn -q clean test        # 67 tests JUnit 5 (Jupiter 5.10.2)
+mvn -q clean test        # 68 tests JUnit 5 (Jupiter 5.10.2)
 ```
 
 Les tests couvrent les modèles (`Card`, `Deck`, `Hand`, `Player`), les deux règles
