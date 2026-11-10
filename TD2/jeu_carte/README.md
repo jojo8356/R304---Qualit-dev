@@ -28,6 +28,20 @@ java -cp target/classes fr.nice.jeu_carte.Main lowest   # la carte la plus basse
 | `error: release version 21 not supported` | Maven tourne sur un JDK < 21 | le `pom.xml` compile désormais en `release 17` ; sinon `mvn -v` puis pointer `JAVA_HOME` sur un JDK 21 (`export JAVA_HOME=…`) |
 | `UnsupportedClassVersionError: … class file version 65.0 … up to 61.0` | des `.class` compilés par un JDK 21 traînent dans `target/` et sont exécutés par un `java` 17 | `mvn clean compile` (le `mvn clean` supprime les classes obsolètes) puis relancer avec le **même** JDK |
 | `Error: Could not find or load main class fr.nice.jeu_carte.Main` | la compilation a échoué (ou `target/classes` absent) | lire l'erreur de `mvn compile` avant de lancer `java` |
+| `UnsupportedClassVersionError` sur **une seule** classe alors que `mvn` ne dit rien | un `.class` compilé par un autre outil (JDK 21, IDE, ou `target/` versionné) traîne dans `target/classes` | `rm -rf target` puis `mvn clean compile` ; ne jamais committer `target/` |
+
+Vérifier la version des classes produites (61 = Java 17, 65 = Java 21) :
+
+```bash
+javap -verbose -cp target/classes fr.nice.jeu_carte.models.Player | grep "major version"
+```
+
+> Le dossier `target/` a longtemps été versionné dans ce dépôt : il contenait des
+> `.class` compilés en Java 21, dont ceux de classes supprimées depuis
+> (`PlayerController`, `View`). Il a été retiré de Git (`.gitignore` à la racine).
+> Si un IDE (VS Code, IntelliJ) recompile dans `target/classes` avec son propre
+> JDK, vérifie qu'il est réglé sur 17 ou 21 — sinon le mélange de versions
+> réapparaît.
 
 ## Architecture
 
