@@ -7,23 +7,16 @@ import java.util.Objects;
 /**
  * Configuration d'une partie produite par le {@link DeckBuilder} :
  * le paquet à utiliser et la règle de victoire ([PAT] page 6).
+ *
+ * <p>C'est un {@code record} (Java 16+) : deux champs immuables, un
+ * constructeur qui valide, et {@code deck()} / {@code rule()} générés. Trente
+ * lignes de code de plomberie deviennent une déclaration.</p>
  */
-public final class GameSetup {
+public record GameSetup(Deck deck, WinnerRule rule) {
 
-    private final Deck deck;
-    private final WinnerRule rule;
-
-    public GameSetup(Deck deck, WinnerRule rule) {
-        this.deck = Objects.requireNonNull(deck, "deck");
-        this.rule = Objects.requireNonNull(rule, "rule");
-    }
-
-    public Deck getDeck() {
-        return deck;
-    }
-
-    public WinnerRule getRule() {
-        return rule;
+    public GameSetup {
+        Objects.requireNonNull(deck, "deck");
+        Objects.requireNonNull(rule, "rule");
     }
 
     @Override

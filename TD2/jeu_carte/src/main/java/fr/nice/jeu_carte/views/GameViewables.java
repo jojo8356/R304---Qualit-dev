@@ -46,57 +46,41 @@ public class GameViewables implements GameViewable {
     @Override
     public void setController(GameController controller) {
         this.controller = controller;
-        for (GameViewable view : views) {
-            view.setController(controller);
-        }
+        views.forEach(view -> view.setController(controller));
     }
 
     @Override
     public void promptForPlayerName() {
-        for (GameViewable view : views) {
-            view.promptForPlayerName();
-        }
+        views.forEach(view -> view.promptForPlayerName());
     }
 
     @Override
     public void promptForFlip() {
-        for (GameViewable view : views) {
-            view.promptForFlip();
-        }
+        views.forEach(view -> view.promptForFlip());
     }
 
     @Override
     public void promptForNewGame() {
-        for (GameViewable view : views) {
-            view.promptForNewGame();
-        }
+        views.forEach(view -> view.promptForNewGame());
     }
 
     @Override
     public void showPlayerName(int index, String name) {
-        for (GameViewable view : views) {
-            view.showPlayerName(index, name);
-        }
+        views.forEach(view -> view.showPlayerName(index, name));
     }
 
     @Override
     public void showFaceDownCardForPlayer(int index, String name) {
-        for (GameViewable view : views) {
-            view.showFaceDownCardForPlayer(index, name);
-        }
+        views.forEach(view -> view.showFaceDownCardForPlayer(index, name));
     }
 
     @Override
     public void showCardForPlayer(int index, String name, String rank, String suit) {
-        for (GameViewable view : views) {
-            view.showCardForPlayer(index, name, rank, suit);
-        }
+        views.forEach(view -> view.showCardForPlayer(index, name, rank, suit));
     }
 
     @Override
     public void showWinner(String name) {
-        for (GameViewable view : views) {
-            view.showWinner(name);
-        }
+        views.forEach(view -> view.showWinner(name));
     }
 }

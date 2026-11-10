@@ -90,7 +90,13 @@ GameController controller = new GameController(setup, views);
 - `DeckFactory.makeDeck()` / `makeDeck(type)` produit un `Deck` sans que l'appelant
   connaisse les boucles de construction ;
 - `DeckBuilder` enchaîne `.size(…)`, `.type(…)`, `.rule(…)` puis `.build()` et reste
-  réutilisable.
+  réutilisable ;
+- `GameSetup` est un `record` : deux champs immuables, accesseurs et `toString`
+  générés, validation dans le constructeur compact.
+
+Le code utilise les fonctionnalités de Java 17 (`record`, lambdas, références de
+méthode) là où elles ne changent rien au contrat imposé par le TD : aucune classe
+anonyme, aucune boucle recopiée dans le composite de vues.
 
 ## Déroulement (machine à états)
 

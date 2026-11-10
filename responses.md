@@ -583,7 +583,7 @@ Le builder assemble ; il ne remplace pas la factory (factory = *quel* objet, bui
 | `DeckBuilder.size(int)` | 52 ou 32 ; toute autre valeur lève `IllegalArgumentException` |
 | `DeckBuilder.rule(WinnerRule)` | choisit la règle (carte haute par défaut) |
 | `DeckBuilder.build()` | renvoie un `GameSetup` immuable (paquet + règle) |
-| `GameSetup` | ce que le contrôleur reçoit : `getDeck()` et `getRule()` |
+| `GameSetup` | ce que le contrôleur reçoit : un `record` (`deck()`, `rule()`), validé à la construction |
 
 Le builder est **réutilisable** : `build()` ne le consomme pas, chaque appel
 fabrique un paquet neuf. `Main` s'en sert pour traduire les arguments
@@ -1008,7 +1008,7 @@ fonctionnement) sont désormais implémentés.
 | `models/factory/SmallDeck.java` | `extends Deck`, 32 cartes (du 7 à l'As) |
 | `models/factory/TestDeck.java` | `extends Deck`, un 10 par couleur (pour vérifier l'égalité) |
 | `models/factory/DeckBuilder.java` | `.type(…)` / `.size(…)` / `.rule(…)` puis `.build()` → `GameSetup` |
-| `models/factory/GameSetup.java` | configuration immuable : `getDeck()` + `getRule()` |
+| `models/factory/GameSetup.java` | `record GameSetup(Deck, WinnerRule)` : configuration immuable, validée par `Objects.requireNonNull` |
 | `models/Deck.java` | ajout de `STANDARD_DECK_SIZE`, `SMALL_DECK_SIZE`, `Deck(int)` et `Deck(List<Card>)` |
 | `controllers/GameController.java` | nouveau constructeur `GameController(GameSetup, GameViewable)` ; plus de `new Deck()` dans le contrôleur |
 | `Main.java` | traduit les arguments (`swing`, `32`, `lowest`) en `DeckBuilder` puis en `GameSetup` |
@@ -1051,3 +1051,28 @@ cd TD2/jeu_carte
 mvn -q clean test      # attendu : 68 tests, 0 échec (68 = 7 + 11 + 6 + 6 + 7 + 7 + 8 + 16)
 ```
 
+### 13.3 Modernisation Java 17, sans changer l'architecture
+
+Le TD impose le contrat de vue à 8 méthodes ([ADP] p.1), l'adaptateur et la vue
+Swing « telle quelle » : ces choix restent. En revanche la plomberie a été
+réécrite dans le style de Java 17 (le `pom.xml` compile déjà en `release 17`),
+sans modifier une seule signature publique ni un seul comportement :
+
+| Fichier | Avant | Après | Ce qui a changé |
+|---|---:|---:|---|
+| `views/swing/GameSwing.java` | 171 | 137 | 4 `ActionListener` et 4 `Runnable` anonymes → lambdas / références de méthode (`executer(controller::flipCards)`) |
+| `views/GameViewables.java` | 73 | 57 | un `for` de 3 lignes par méthode → `views.forEach(view -> …)`, une ligne par méthode |
+| `models/factory/GameSetup.java` | 22 | 14 | classe à deux champs + 2 getters + constructeur → `record` avec constructeur compact |
+| `Main.java` | 64 | 61 | `SwingUtilities.invokeLater(new Runnable() {…})` → lambda |
+| **Total** | **330** | **269** | **− 61 lignes de code** (et plus aucune classe anonyme dans `src/main`) |
+
+Ce qui ne peut pas maigrir sans sortir du sujet :
+
+- `GameViewAdapter` (45 lignes) et `GameViewables` (57) sont des **délégations** :
+  une méthode par méthode du contrat, soit 8 × 2 = 16 méthodes incompressibles ;
+  les supprimer reviendrait à changer l'interface de vue, donc le polycopié ;
+- `ConsoleView` (123 lignes) contient la boucle de saisie et les reprises sur
+  erreur : c'est de la logique, pas de la syntaxe.
+
+Vérification : compilation de `src/main` + `src/test` (0 erreur) et **68 tests
+verts** après la modernisation — le comportement est identique.
