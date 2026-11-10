@@ -260,7 +260,7 @@ C'est la réponse à « analyser la séquence pour identifier les actions, les r
 
 | # | Étape [TD p.3] | Action du contrôleur | Requête adressée à la vue | Ce qu'il lit / valide |
 |---|---|---|---|---|
-| 1 | Créer le deck | `new Deck()` (ou `DeckFactory`) dans le constructeur ; `players = new ArrayList<>()` | — | — |
+| 1 | Créer le deck | `DeckFactory.makeDeck()` appelée par le `DeckBuilder` (§7.1-7.2) ; le contrôleur reçoit le `Deck` déjà construit et part d'un `players = new ArrayList<>()` | — | — |
 | 2 | Saisir les noms | `addPlayer(name)` | `showPlayerName(index, name)` puis `promptForPlayerName()` | État = `AddingPlayer` ; nom non vide ; `players.size() < 5` |
 | 3 | Mélanger | `deck.shuffle()` | — | Paquet non vide ; état = `AddingPlayer` (fin de phase) |
 | 4 | Distribuer | `deck.drawCard()` → `player.addCardToHand(card)` pour chaque joueur | `showFaceDownCardForPlayer(index, name)` | Au moins 1 joueur ; `cards.size() ≥ nb joueurs` |
@@ -277,9 +277,14 @@ C'est la réponse à « analyser la séquence pour identifier les actions, les r
 
 ```java
 public static void main(String[] args) {
+    // le paquet est fabriqué hors du contrôleur (§7.1-7.2)
+    GameSetup setup = new DeckBuilder()
+            .size(Deck.STANDARD_DECK_SIZE)   // ou SMALL_DECK_SIZE
+            .rule(new HighestCardWins())     // règle injectée
+            .build();
+
     GameViewable view = new CommandLineView();        // vue créée à l'extérieur
-    WinnerRule rule   = new HighestCardWins();        // règle injectée
-    GameController controller = new GameController(new Deck(), view, rule);
+    GameController controller = new GameController(setup, view);
     controller.runOneStep();                          // affiche la consigne « nom du joueur »
 }
 ```
@@ -530,33 +535,59 @@ Tant que ces quatre lignes ne sont pas vertes, **brancher `GameSwing` est imposs
 ### 7.1 Factory ([PAT] p.3-4)
 
 **Problème.** `new Deck()` fige le type de paquet dans le contrôleur. Pour un jeu à 32 cartes, il faudrait modifier le contrôleur.
-**Réponse.** `DeckFactory.makeDeck(type)` renvoie `SmallDeck` / `NormalDeck` / `TestDeck` ; le client ne dépend plus du constructeur concret.
+**Réponse.** `DeckFactory.makeDeck(type)` renvoie `NormalDeck` / `SmallDeck` / `TestDeck` ; le client ne dépend plus du constructeur concret.
 
 ```java
-public enum DeckType { SMALL_32, NORMAL_52, TEST }
+public enum DeckType { NORMAL_52, SMALL_32, TEST }
 
-public class DeckFactory {
-    public Deck makeDeck(DeckType type) {
-        return switch (type) {
-            case SMALL_32  -> new Deck(32);
-            case NORMAL_52 -> new Deck(52);
-            case TEST      -> new TestDeck();
-        };
+public Deck makeDeck(DeckType type) {
+    switch (type) {
+        case SMALL_32:  return new SmallDeck();    // 32 cartes, du 7 à l'As
+        case TEST:      return new TestDeck();     // un 10 par couleur
+        case NORMAL_52:
+        default:        return new NormalDeck();   // 52 cartes
     }
 }
 ```
 (Le polycopié inverse les libellés `NormalDeck`/`SmallDeck` p.3 : gardez une nomenclature cohérente, l'important est le principe.)
 
+**Implémenté** — `models/factory/` :
+
+| Élément | Rôle |
+|---|---|
+| `DeckType` | énumération des paquets connus : `NORMAL_52`, `SMALL_32` (du 7 à l'As), `TEST` (un 10 par couleur) |
+| `NormalDeck`, `SmallDeck`, `TestDeck` | les trois paquets concrets, sous-classes de `Deck` (elles n'appellent que `super(52)`, `super(32)` ou `super(liste)`) |
+| `DeckFactory` | `makeDeck()` (type configuré par `setType`) ou `makeDeck(type)` ; refuse `null` |
+| `Deck(int)` / `Deck(List<Card>)` | les deux constructeurs que les sous-classes utilisent (52/32 cartes, ou liste fournie) |
+
+Le contrôleur, lui, ne connaît plus que `Deck` : `Main` choisit le type, la factory
+le fabrique.
+
 ### 7.2 Builder ([PAT] p.5-6)
 
 Objet **complexe** composé des **mêmes parties** mais avec des **variantes** : ici, taille du paquet + règle de victoire.
 ```java
-Deck deck = new DeckBuilder()
-        .size(52)
-        .rule(new HighestCardWins())
-        .build();
+GameSetup setup = new DeckBuilder()
+        .size(52)                       // ou Deck.SMALL_DECK_SIZE
+        .rule(new HighestCardWins())    // ou new LowestCardWins()
+        .build();                       // -> paquet + règle
+GameController controller = new GameController(setup, view);
 ```
-Le builder assemble ; il ne remplace pas la factory (factory = *quel* objet, builder = *comment l'assembler*).
+Le builder assemble ; il ne remplace pas la factory (factory = *quel* objet, builder = *comment l'assembler*) : `DeckBuilder.build()` appelle justement `new DeckFactory(type).makeDeck()`.
+
+**Implémenté** — `models/factory/DeckBuilder.java` + `GameSetup.java` :
+
+| Élément | Rôle |
+|---|---|
+| `DeckBuilder.type(DeckType)` | choisit le paquet (52, 32, test) |
+| `DeckBuilder.size(int)` | 52 ou 32 ; toute autre valeur lève `IllegalArgumentException` |
+| `DeckBuilder.rule(WinnerRule)` | choisit la règle (carte haute par défaut) |
+| `DeckBuilder.build()` | renvoie un `GameSetup` immuable (paquet + règle) |
+| `GameSetup` | ce que le contrôleur reçoit : `getDeck()` et `getRule()` |
+
+Le builder est **réutilisable** : `build()` ne le consomme pas, chaque appel
+fabrique un paquet neuf. `Main` s'en sert pour traduire les arguments
+(`swing`, `32`, `lowest`) en configuration.
 
 ### 7.3 Composite ([PAT] p.7)
 
@@ -645,7 +676,7 @@ Câblage final ([ADP] p.4) :
 ```java
 GameViewable swing = new GameSwing();
 VueJeu vue = new GameSwingAdapter(swing);
-GameController gc = new GameController(deck, vue, new HighestCardWins());
+GameController gc = new GameController(new GameSetup(deck, new HighestCardWins()), vue);
 vue.setController(gc);
 swing.createAndShowGUI();
 gc.runOneStep();
@@ -851,7 +882,8 @@ Et côté outillage : `pom.xml` ne déclare **aucune** dépendance de test alors
 | [PAT] Observer / `addView` (+ bouton « Ajouter une vue ») | ✅ |
 | [PAT] threads : `runOneStep`, `CopyOnWriteArrayList`, EDT | ✅ |
 | [ADP] Adapter | ✅ (`GameViewAdapter` ↔ `VueJeu`) |
-| [PAT] Factory / Builder | ⏳ non implémentés (facultatifs, §7.1-7.2) |
+| [PAT] Factory / Builder | ✅ (§7.1-7.2, §13.1) : `DeckFactory`, `DeckType`, `NormalDeck`/`SmallDeck`/`TestDeck`, `DeckBuilder` + `GameSetup` |
+| Tests automatisés | ✅ (§13.2) : 68 tests JUnit 5 dans `src/test/java` |
 | Tests JUnit | ⏳ à ajouter (voir §12.6) |
 
 ### 12.3 Arborescence livrée
@@ -862,12 +894,21 @@ TD2/jeu_carte/src/main/java/fr/nice/jeu_carte/
 ├── controllers/GameController.java
 ├── models/
 │   ├── Card.java  Color.java  Deck.java  Hand.java  Player.java  Rank.java
+│   ├── factory/  DeckType.java  DeckFactory.java  NormalDeck.java  SmallDeck.java
+│   │             TestDeck.java  DeckBuilder.java  GameSetup.java
 │   └── rules/  WinnerRule.java  HighestCardWins.java  LowestCardWins.java
 └── views/
     ├── GameViewable.java  GameViewables.java
     ├── adapter/GameViewAdapter.java
     ├── legacy/VueJeu.java  ConsoleView.java
     └── swing/GameSwing.java
+
+TD2/jeu_carte/src/test/java/fr/nice/jeu_carte/
+├── controllers/GameControllerTest.java
+├── models/  CardTest.java  DeckTest.java  HandTest.java  PlayerTest.java
+│   ├── factory/  DeckFactoryTest.java  DeckBuilderTest.java
+│   └── rules/  WinnerRuleTest.java
+└── views/RecordingView.java        (vue factice : enregistre les appels)
 ```
 
 ### 12.4 Machine à états réellement implémentée
@@ -897,7 +938,9 @@ Le câblage (`Main`) :
 ```java
 GameViewables views = new GameViewables();
 views.add(new GameViewAdapter(new ConsoleView()));
-GameController controller = new GameController(views, new HighestCardWins());
+
+GameSetup setup = new DeckBuilder().size(Deck.STANDARD_DECK_SIZE).build();
+GameController controller = new GameController(setup, views);
 controller.runOneStep();
 ```
 
@@ -906,8 +949,10 @@ controller.runOneStep();
 ```bash
 cd TD2/jeu_carte
 mvn -q clean compile
-java -cp target/classes fr.nice.jeu_carte.Main          # console
-java -cp target/classes fr.nice.jeu_carte.Main swing    # interface Swing
+mvn -q test                                              # 68 tests JUnit 5
+java -cp target/classes fr.nice.jeu_carte.Main           # console
+java -cp target/classes fr.nice.jeu_carte.Main swing     # interface Swing
+java -cp target/classes fr.nice.jeu_carte.Main 32 lowest # 32 cartes, la plus basse gagne
 ```
 
 Le `pom.xml` compile en `release 17` : le projet fonctionne aussi bien avec un
@@ -921,22 +966,88 @@ de JDK, sinon des `.class` produits par l'autre JDK provoquent un
 
 Contrôles déjà effectués sur cette branche :
 
-- **compilation** du projet complet par `javac` (build WASM TeaVM, faute de JDK
-  dans l'environnement d'analyse) : **0 erreur** ; les classes JDK absentes de
-  cette bibliothèque réduite (`java.util.Scanner`, `javax.swing.*`, `java.awt.*`)
-  ont été remplacées par des stubs de même signature, et `getMessage()` par
-  `toString()` dans les copies de vérification uniquement ;
-- **65 assertions exécutées** sur le vrai code du projet : 52 cartes uniques,
-  sens des rangs et des couleurs, main/joueur, limite de 5 joueurs, transitions
-  d'état, gagnant réellement le mieux classé, reconstitution du paquet, enchaînement
-  de deux manches, adaptateur, composite, `addView`, et une partie console
-  complète jouée avec une entrée scriptée.
+- **compilation** de `src/main` + `src/test` par un `javac` **WASM** (TeaVM,
+  faute de JDK dans l'environnement d'analyse) : **0 erreur** sur 33 fichiers de
+  code (24 + 9), hors stubs de l'environnement ;
+- **68 tests exécutés** (voir §13.2) : 52 cartes uniques, sens des rangs et des
+  couleurs, égalité tranchée par la couleur, main/joueur, limite de 5 joueurs,
+  transitions d'état, gagnant réellement le mieux classé, reconstitution du
+  paquet, enchaînement de deux manches, adaptateur, composite, `addView`,
+  fabrique (52/32/paquet de test) et builder ;
+- **exécution réelle de `Main`** dans ce même harnais : les deux branches
+  (`console`, `swing`) démarrent, la configuration `32 lowest` est bien prise en
+  compte.
 
-À ajouter pour finir (facultatif) : dépendance `junit-jupiter` dans `pom.xml` et
-tests dans `src/test/java` (les assertions ci-dessus s'y transposent directement).
+> **Limite honnête.** Ce harnais n'est pas un JDK : la bibliothèque de classes
+> embarquée n'a ni `java.util.Scanner`, ni `java.awt.*`, ni `javax.swing.*`, ni
+> `getMessage()`. Ces API ont donc été remplacées par des stubs de même
+> signature **dans des copies de vérification uniquement** (les sources du dépôt
+> sont intactes), et les assertions JUnit ont été rejouées par un petit lanceur
+> qui appelle les mêmes méthodes de test. Le verdict définitif — `mvn test`
+> avec les vraies `junit-jupiter` — reste à faire sur une machine avec JDK 17 +
+> Maven ; rien dans les tests n'utilise d'API absente de JUnit 5.10.2.
 
 ### 12.7 Ce qui n'a pas changé
 
 `TD1/` est intact. Le `pom.xml` reste volontairement minimal (compilation en
 `release 17` pour être compatible JDK 17 **et** 21, encodage UTF-8) ; aucune
 dépendance externe n'a été ajoutée.
+
+## 13. Compléments : patrons Factory / Builder et tests JUnit
+
+Les deux points restés « facultatifs » du [PAT] p.3-6 et du TD (vérifier le bon
+fonctionnement) sont désormais implémentés.
+
+### 13.1 Factory et Builder
+
+| Fichier | Rôle |
+|---|---|
+| `models/factory/DeckType.java` | les trois paquets connus : `NORMAL_52`, `SMALL_32`, `TEST` (+ libellé et taille) |
+| `models/factory/DeckFactory.java` | `makeDeck()` / `makeDeck(type)` → `NormalDeck`, `SmallDeck` ou `TestDeck` |
+| `models/factory/NormalDeck.java` | `extends Deck`, 52 cartes |
+| `models/factory/SmallDeck.java` | `extends Deck`, 32 cartes (du 7 à l'As) |
+| `models/factory/TestDeck.java` | `extends Deck`, un 10 par couleur (pour vérifier l'égalité) |
+| `models/factory/DeckBuilder.java` | `.type(…)` / `.size(…)` / `.rule(…)` puis `.build()` → `GameSetup` |
+| `models/factory/GameSetup.java` | configuration immuable : `getDeck()` + `getRule()` |
+| `models/Deck.java` | ajout de `STANDARD_DECK_SIZE`, `SMALL_DECK_SIZE`, `Deck(int)` et `Deck(List<Card>)` |
+| `controllers/GameController.java` | nouveau constructeur `GameController(GameSetup, GameViewable)` ; plus de `new Deck()` dans le contrôleur |
+| `Main.java` | traduit les arguments (`swing`, `32`, `lowest`) en `DeckBuilder` puis en `GameSetup` |
+
+Ce que cela change concrètement :
+
+- **Factory** : ajouter un type de paquet = ajouter une sous-classe de `Deck` et
+  une constante dans `DeckType` ; ni le contrôleur ni `Main` ne changent de logique ;
+- **Builder** : la même séquence d'appels produit une partie 52 cartes « carte
+  haute » ou 32 cartes « carte basse » ; le builder reste réutilisable ;
+- **Open/Closed** : le contrôleur ne dépend que de `Deck` et de `WinnerRule`,
+  jamais des classes concrètes de paquets.
+
+### 13.2 Tests JUnit 5
+
+`pom.xml` : `junit-jupiter` **5.10.2** (scope `test`) + `maven-surefire-plugin`
+**3.2.5** (surefire ≥ 3 gère la plateforme JUnit 5). Les tests sont dans
+`src/test/java`, donc hors du jar produit.
+
+| Classe de test | Tests | Ce qui est vérifié |
+|---|---|---|
+| `models/CardTest` | 7 | ordre des 13 rangs, ordre des 4 couleurs, comparaison rang puis couleur, égalité, retournement (`flip`/`faceDown`), libellés |
+| `models/DeckTest` | 11 | 52 cartes / 4 As / 13 par couleur, paquet de 32 à partir du 7, tailles refusées, aucun doublon, mélange conservant l'ensemble, pioche, paquet vide, remise face cachée, `Deck(List)` |
+| `models/HandTest` | 6 | main vide, ajout/retrait, vue non modifiable, carte nulle, indices hors bornes, affichage |
+| `models/PlayerTest` | 6 | nom obligatoire et nettoyé, main par défaut ou fournie, cartes du joueur, `presentHand` |
+| `models/rules/WinnerRuleTest` | 7 | carte haute (As > Roi), égalité par la couleur, carte basse, liste vide, joueur sans carte, joueur unique |
+| `models/factory/DeckFactoryTest` | 7 | types produits (`NormalDeck`, `SmallDeck`, `TestDeck`), un 10 par couleur, paquet de test + carte haute ⇒ 10 de Trèfles, type configurable, type nul, paquets indépendants |
+| `models/factory/DeckBuilderTest` | 8 | configuration par défaut (52 + carte haute), `size(52)`, `size(32)`, taille refusée, règle injectée, chaînage libre, builder réutilisable, règle nulle |
+| `controllers/GameControllerTest` | 16 | état initial, première étape, ajout de joueur, nom vide, limite de 5, distribution, retournement, gagnant, actions interdites, reconstitution du paquet, nouvelle manche, règle injectée, paquet de test, `addView`, dépendances nulles |
+| **Total** | **68** | |
+
+Le contrôleur est testé **sans console ni fenêtre** grâce à
+`views/RecordingView` : une vue factice qui enregistre les appels (`showWinner`,
+`showCardForPlayer`, `promptForFlip`…). C'est la preuve concrète que
+l'interface `GameViewable` permet de tester le contrôleur sans interface
+graphique (DIP + ISP).
+
+```bash
+cd TD2/jeu_carte
+mvn -q clean test      # attendu : 68 tests, 0 échec (68 = 7 + 11 + 6 + 6 + 7 + 7 + 8 + 16)
+```
+

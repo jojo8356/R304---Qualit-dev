@@ -30,6 +30,11 @@ public class LowestCardWins implements WinnerRule {
         return Optional.ofNullable(worst);
     }
 
+    @Override
+    public String toString() {
+        return "la carte la plus basse gagne";
+    }
+
     private Card requireCardOf(Player player) {
         if (player.getHand().isEmpty()) {
             throw new IllegalStateException(

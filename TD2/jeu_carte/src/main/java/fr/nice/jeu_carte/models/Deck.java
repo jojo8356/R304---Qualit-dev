@@ -13,15 +13,57 @@ import java.util.List;
  */
 public class Deck {
 
+    /** Taille du jeu standard (4 couleurs × 13 rangs). */
+    public static final int STANDARD_DECK_SIZE = 52;
+
+    /** Taille d'un petit jeu (du 7 à l'As : 8 rangs × 4 couleurs). */
+    public static final int SMALL_DECK_SIZE = 32;
+
     private final List<Card> cards;
 
     /** Construit le jeu standard de 52 cartes (4 couleurs × 13 rangs). */
     public Deck() {
+        this(STANDARD_DECK_SIZE);
+    }
+
+    /**
+     * Construit un paquet de 52 cartes, ou de 32 cartes (du 7 à l'As).
+     *
+     * @param size {@value #STANDARD_DECK_SIZE} ou {@value #SMALL_DECK_SIZE}
+     * @throws IllegalArgumentException pour toute autre taille
+     */
+    public Deck(int size) {
+        if (size != STANDARD_DECK_SIZE && size != SMALL_DECK_SIZE) {
+            throw new IllegalArgumentException(
+                    "Taille de paquet non supportée : " + size + " (52 ou 32 attendu).");
+        }
         this.cards = new ArrayList<>();
         for (Color color : Color.values()) {
             for (Rank rank : Rank.values()) {
-                cards.add(new Card(rank, color));
+                if (size == STANDARD_DECK_SIZE || rank.getStrength() >= Rank.SEVEN.getStrength()) {
+                    cards.add(new Card(rank, color));
+                }
             }
+        }
+    }
+
+    /**
+     * Construit un paquet à partir d'une liste de cartes : utilisé par la
+     * factory pour les paquets de test (deuxième boucle du TD §2.3 remplacée
+     * par une liste fournie).
+     *
+     * @throws IllegalArgumentException si la liste est nulle ou vide
+     */
+    public Deck(List<Card> cards) {
+        if (cards == null || cards.isEmpty()) {
+            throw new IllegalArgumentException("Un paquet ne peut pas être vide.");
+        }
+        this.cards = new ArrayList<>(cards.size());
+        for (Card card : cards) {
+            if (card == null) {
+                throw new IllegalArgumentException("Un paquet ne peut pas contenir de carte nulle.");
+            }
+            this.cards.add(card);
         }
     }
 

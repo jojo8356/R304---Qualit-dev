@@ -28,6 +28,11 @@ public class HighestCardWins implements WinnerRule {
         return Optional.ofNullable(best);
     }
 
+    @Override
+    public String toString() {
+        return "la carte la plus haute gagne";
+    }
+
     private Card requireCardOf(Player player) {
         if (player.getHand().isEmpty()) {
             throw new IllegalStateException(

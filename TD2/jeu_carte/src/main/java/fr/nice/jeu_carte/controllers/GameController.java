@@ -3,6 +3,7 @@ package fr.nice.jeu_carte.controllers;
 import fr.nice.jeu_carte.models.Card;
 import fr.nice.jeu_carte.models.Deck;
 import fr.nice.jeu_carte.models.Player;
+import fr.nice.jeu_carte.models.factory.GameSetup;
 import fr.nice.jeu_carte.models.rules.WinnerRule;
 import fr.nice.jeu_carte.views.GameViewable;
 import fr.nice.jeu_carte.views.GameViewables;
@@ -16,7 +17,8 @@ import java.util.Optional;
  * et le jeu, sans jamais afficher quoi que ce soit lui-même.
  *
  * <ul>
- *   <li>il construit le paquet et une liste de joueurs vide (TD §3.1) ;</li>
+ *   <li>il reçoit le paquet (construit par la {@code DeckFactory}) et part d'une
+ *       liste de joueurs vide (TD §3.1, [PAT] pages 3-6) ;</li>
  *   <li>il ne dépend que de l'abstraction {@link GameViewable} et d'une règle
  *       injectée {@link WinnerRule} (inversion de dépendance, TD §4.5-4.7) ;</li>
  *   <li>il connaît l'étape courante ({@link GameState}) et refuse les entrées
@@ -50,9 +52,12 @@ public class GameController {
     private GameState state;
     private Optional<Player> winner;
 
-    /** Construit le paquet et délègue le reste au constructeur principal (TD §3.1). */
-    public GameController(GameViewable view, WinnerRule rule) {
-        this(new Deck(), view, rule);
+    /**
+     * Construit le contrôleur à partir d'une configuration produite par le
+     * {@link fr.nice.jeu_carte.models.factory.DeckBuilder} ([PAT] pages 5-6).
+     */
+    public GameController(GameSetup setup, GameViewable view) {
+        this(Objects.requireNonNull(setup, "setup").getDeck(), view, setup.getRule());
     }
 
     public GameController(Deck deck, GameViewable view, WinnerRule rule) {
