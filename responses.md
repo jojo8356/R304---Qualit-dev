@@ -905,10 +905,16 @@ controller.runOneStep();
 
 ```bash
 cd TD2/jeu_carte
-mvn -q compile
+mvn -q clean compile
 java -cp target/classes fr.nice.jeu_carte.Main          # console
 java -cp target/classes fr.nice.jeu_carte.Main swing    # interface Swing
 ```
+
+Le `pom.xml` compile en `release 17` : le projet fonctionne aussi bien avec un
+JDK 17 qu'avec un JDK 21. Toujours lancer `mvn clean compile` après un changement
+de JDK, sinon des `.class` produits par l'autre JDK provoquent un
+`UnsupportedClassVersionError` (Maven et `java` doivent utiliser le **même** JDK ;
+`mvn -v` indique celui de Maven).
 
 Contrôles déjà effectués sur cette branche :
 
@@ -928,5 +934,6 @@ tests dans `src/test/java` (les assertions ci-dessus s'y transposent directement
 
 ### 12.7 Ce qui n'a pas changé
 
-`TD1/` est intact. Le `pom.xml` reste volontairement minimal (Java 21, UTF-8) ;
-aucune dépendance externe n'a été ajoutée.
+`TD1/` est intact. Le `pom.xml` reste volontairement minimal (compilation en
+`release 17` pour être compatible JDK 17 **et** 21, encodage UTF-8) ; aucune
+dépendance externe n'a été ajoutée.

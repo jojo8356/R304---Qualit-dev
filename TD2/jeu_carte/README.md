@@ -4,14 +4,30 @@ Projet Maven du TD « MVC / jeu de cartes » : un jeu de 52 cartes où chaque jo
 reçoit une carte face cachée, la carte la mieux classée gagne
 (As > Roi > … > 2, puis Trèfles > Piques > Cœurs > Carreaux).
 
+## Prérequis
+
+- **JDK 17 ou 21** (le `pom.xml` compile en `release 17`, donc les deux conviennent) ;
+- **Maven 3.9+**.
+
+Le JDK utilisé par Maven est celui de `JAVA_HOME`, pas forcément celui de ton
+terminal : vérifie-le avec `mvn -v` (ligne « Java version »).
+
 ## Lancer
 
 ```bash
-mvn -q compile
+mvn -q clean compile
 java -cp target/classes fr.nice.jeu_carte.Main          # vue console
 java -cp target/classes fr.nice.jeu_carte.Main swing    # vue Swing
 java -cp target/classes fr.nice.jeu_carte.Main lowest   # la carte la plus basse gagne
 ```
+
+## Dépannage
+
+| Message | Cause | Solution |
+|---|---|---|
+| `error: release version 21 not supported` | Maven tourne sur un JDK < 21 | le `pom.xml` compile désormais en `release 17` ; sinon `mvn -v` puis pointer `JAVA_HOME` sur un JDK 21 (`export JAVA_HOME=…`) |
+| `UnsupportedClassVersionError: … class file version 65.0 … up to 61.0` | des `.class` compilés par un JDK 21 traînent dans `target/` et sont exécutés par un `java` 17 | `mvn clean compile` (le `mvn clean` supprime les classes obsolètes) puis relancer avec le **même** JDK |
+| `Error: Could not find or load main class fr.nice.jeu_carte.Main` | la compilation a échoué (ou `target/classes` absent) | lire l'erreur de `mvn compile` avant de lancer `java` |
 
 ## Architecture
 
