@@ -1,5 +1,10 @@
 # TD2 — MVC / Jeu de cartes · Réponses écrites et audit de conformité
 
+> **Mise à jour.** Les cinq problèmes bloquants du §1.2 ont été corrigés dans le
+> projet `TD2/jeu_carte` (réécriture du modèle, du contrôleur et des vues) :
+> voir le **§12 — Corrections appliquées**. Les §1 à §11 décrivent l'état
+> **initial** du code et servent de justification des choix.
+
 **Projet audité :** `TD2/jeu_carte` (commit `47d7c55`)
 **Documents de référence :**
 
@@ -647,6 +652,13 @@ gc.runOneStep();
 ```
 Règles du TD : **aucun renommage**, **aucune modification du contrôleur**, **pas d'extension de `GameSwing`**.
 
+> **Direction effectivement implémentée dans le projet.** Le contrôleur dépend de
+> l'interface standard `GameViewable` (exigence du §4.7) ; c'est donc la vue
+> console, écrite avec l'API française historique `VueJeu`, qui est adaptée :
+> `GameViewAdapter implements GameViewable` et délègue à `VueJeu`. La table de
+> correspondance est identique à celle du polycopié, seul le sens de la flèche
+> s'inverse. Voir §12.5.
+
 ---
 
 ## 8. Audit du code : ce qui bloque, ce qui est faux, ce qui manque
@@ -797,3 +809,124 @@ Et côté outillage : `pom.xml` ne déclare **aucune** dépendance de test alors
 1. **Ce qui est déjà bon :** le découpage du modèle (`Deck` / `Hand` / `Player` / `Card` / enums) est celui attendu par le TD ; le paquet fait bien 52 cartes et se mélange ; la distribution d'une carte face cachée fonctionne au niveau modèle.
 2. **Ce qui est rouge :** le projet **ne compile pas** (7 erreurs), la **hiérarchie des cartes est inversée** (l'As est le plus faible), la **vue est vide** et le contrôleur fait l'interface lui-même, la **machine à états n'est pas pilotée**, et **aucun chapitre SOLID/patrons** (Strategy, DIP, Composite, Observer, Adapter, threads) n'est traité.
 3. **Ordre de travail conseillé :** §9 (P0 → P1 → P2). Tant que P0 et P1 ne sont pas verts, les patrons du P2 ne peuvent pas être démontrés : le TD les présente comme des étapes *après* une partie fonctionnelle.
+
+---
+
+## 12. Corrections appliquées
+
+### 12.1 Les cinq problèmes du §1.2
+
+| # | Problème initial | Correction apportée | Fichiers |
+|---|---|---|---|
+| 1 | Le projet ne compile pas | `Player` replacé dans `fr.nice.jeu_carte.models` (classe `Player`, plus `PlayerController`) ; `Main` réécrit (câblage réel, plus d'appels statiques fantômes) ; `GameController` réécrit (plus de `createPlayers`, plus de `Scanner`) ; `views/View.java` supprimée | `models/Player.java`, `Main.java`, `controllers/GameController.java` |
+| 2 | Hiérarchie des cartes inversée | `Rank` déclaré dans l'ordre `2 … Roi, As` avec `ACE = 14` ; `Color` dans l'ordre `Carreaux 1 < Cœurs 2 < Piques 3 < Trèfles 4` ; comparaison sur `getStrength()`, jamais sur `ordinal()` | `models/Rank.java`, `models/Color.java`, `models/Card.java` |
+| 3 | Égalité jamais tranchée | `Card.compareTo` compare le rang puis **la couleur** ; `0` uniquement pour deux cartes identiques | `models/Card.java` |
+| 4 | Le contrôleur faisait la vue | plus aucun `System.out`/`Scanner` dans le contrôleur ; interface `GameViewable` (8 méthodes, [ADP] p.1), vue console, vue Swing, composite, adaptateur | `views/**`, `controllers/GameController.java` |
+| 5 | Rien n'était branché | `addPlayer`, `startGame`, `flipCards`, `evaluateWinner`, `rebuildDeck`, `runOneStep`, `addView` ; `WinnerRule` + 2 règles ; `GameViewables` ; `GameViewAdapter` ; `GameSwing` ; `Card.flip()` et `compareTo()` réellement utilisés | `controllers/`, `models/rules/`, `views/` |
+
+### 12.2 État des spécifications après correction
+
+| # | Exigence [TD] §1 | État |
+|---|---|---|
+| 1 | jeu standard de 52 cartes | ✅ `Deck()` = 4 couleurs × 13 rangs |
+| 2 | saisie des noms | ✅ `ConsoleView.demandeNomJoueur` → `addPlayer` |
+| 3 | 5 joueurs maximum | ✅ `GameController.MAX_PLAYERS` + `canAddPlayer()` |
+| 4 | mélange | ✅ `deck.shuffle()` à **chaque** manche |
+| 5 | une carte face cachée par joueur | ✅ `startGame()` + `showFaceDownCardForPlayer` |
+| 6 | retourner les cartes | ✅ `flipCards()` + `showCardForPlayer` |
+| 7 | meilleure carte (As > Roi > … > 2) | ✅ `Card.compareTo` |
+| 8 | égalité tranchée par la couleur | ✅ Trèfles > Piques > Cœurs > Carreaux |
+| 9 | afficher le nom et la carte du gagnant | ✅ `showWinner` (+ carte affichée avant) |
+| 10 | remettre les cartes dans le paquet | ✅ `rebuildDeck()` / `recoverCards()` |
+| 11 | revenir à l'étape de mélange | ✅ `rebuildDeck()` → `AddingPlayer` → `startGame()` |
+
+| Bloc | État |
+|---|---|
+| §4.1-4.2 SRP (`WinnerRule` extraite) | ✅ |
+| §4.3-4.4 OCP + Strategy (`HighestCardWins`, `LowestCardWins`) | ✅ |
+| §4.5 DIP (règle et vue injectées) | ✅ |
+| §4.6 ISP / `GameViewable` | ✅ |
+| §4.7 DIP + nouvelle vue sans toucher au contrôleur | ✅ (`GameSwing`) |
+| [PAT] Composite (`GameViewables`) | ✅ |
+| [PAT] Observer / `addView` (+ bouton « Ajouter une vue ») | ✅ |
+| [PAT] threads : `runOneStep`, `CopyOnWriteArrayList`, EDT | ✅ |
+| [ADP] Adapter | ✅ (`GameViewAdapter` ↔ `VueJeu`) |
+| [PAT] Factory / Builder | ⏳ non implémentés (facultatifs, §7.1-7.2) |
+| Tests JUnit | ⏳ à ajouter (voir §12.6) |
+
+### 12.3 Arborescence livrée
+
+```
+TD2/jeu_carte/src/main/java/fr/nice/jeu_carte/
+├── Main.java
+├── controllers/GameController.java
+├── models/
+│   ├── Card.java  Color.java  Deck.java  Hand.java  Player.java  Rank.java
+│   └── rules/  WinnerRule.java  HighestCardWins.java  LowestCardWins.java
+└── views/
+    ├── GameViewable.java  GameViewables.java
+    ├── adapter/GameViewAdapter.java
+    ├── legacy/VueJeu.java  ConsoleView.java
+    └── swing/GameSwing.java
+```
+
+### 12.4 Machine à états réellement implémentée
+
+| État | Entrée | Effet | État suivant |
+|---|---|---|---|
+| `AddingPlayer` | `addPlayer(nom)` | crée le joueur, `showPlayerName` | `AddingPlayer` |
+| `AddingPlayer` | `startGame()` | mélange, distribue face cachée, `showFaceDownCardForPlayer` | `CardsDealt` |
+| `CardsDealt` | `flipCards()` | retourne, `showCardForPlayer`, `evaluateWinner`, `showWinner` | `WinnerRevealed` |
+| `WinnerRevealed` | `rebuildDeck()` | reprend les cartes, `promptForPlayerName` | `AddingPlayer` |
+| `WinnerRevealed` | `startGame()` | reprend les cartes, remélange, redistribue | `CardsDealt` |
+
+Toute autre combinaison lève `IllegalStateException` : c'est la garde qui matérialise
+« le contrôleur détermine quelles entrées sont valides à cette étape » (TD §3).
+
+### 12.5 Pourquoi l'adaptateur va dans ce sens
+
+Le TD impose que **le contrôleur dépende de `GameViewable`** (§4.7). La vue Swing
+l'implémente donc directement. Restait la vue console, écrite avec l'API française
+`VueJeu` : c'est elle qui a besoin d'un adaptateur pour être branchée sur
+l'interface standard. La correspondance des méthodes est exactement celle du
+polycopié (`demandeNomJoueur ↔ promptForPlayerName`, etc.) ; seul le sens de
+l'adaptation est inversé, ce qui est cohérent avec l'architecture finale du TD.
+
+Le câblage (`Main`) :
+
+```java
+GameViewables views = new GameViewables();
+views.add(new GameViewAdapter(new ConsoleView()));
+GameController controller = new GameController(views, new HighestCardWins());
+controller.runOneStep();
+```
+
+### 12.6 Comment vérifier
+
+```bash
+cd TD2/jeu_carte
+mvn -q compile
+java -cp target/classes fr.nice.jeu_carte.Main          # console
+java -cp target/classes fr.nice.jeu_carte.Main swing    # interface Swing
+```
+
+Contrôles déjà effectués sur cette branche :
+
+- **compilation** du projet complet par `javac` (build WASM TeaVM, faute de JDK
+  dans l'environnement d'analyse) : **0 erreur** ; les classes JDK absentes de
+  cette bibliothèque réduite (`java.util.Scanner`, `javax.swing.*`, `java.awt.*`)
+  ont été remplacées par des stubs de même signature, et `getMessage()` par
+  `toString()` dans les copies de vérification uniquement ;
+- **65 assertions exécutées** sur le vrai code du projet : 52 cartes uniques,
+  sens des rangs et des couleurs, main/joueur, limite de 5 joueurs, transitions
+  d'état, gagnant réellement le mieux classé, reconstitution du paquet, enchaînement
+  de deux manches, adaptateur, composite, `addView`, et une partie console
+  complète jouée avec une entrée scriptée.
+
+À ajouter pour finir (facultatif) : dépendance `junit-jupiter` dans `pom.xml` et
+tests dans `src/test/java` (les assertions ci-dessus s'y transposent directement).
+
+### 12.7 Ce qui n'a pas changé
+
+`TD1/` est intact. Le `pom.xml` reste volontairement minimal (Java 21, UTF-8) ;
+aucune dépendance externe n'a été ajoutée.
