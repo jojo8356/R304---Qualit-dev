@@ -16,10 +16,25 @@ terminal : vérifie-le avec `mvn -v` (ligne « Java version »).
 
 ```bash
 mvn -q clean compile
-java -cp target/classes fr.nice.jeu_carte.Main          # vue console
-java -cp target/classes fr.nice.jeu_carte.Main swing    # vue Swing
-java -cp target/classes fr.nice.jeu_carte.Main lowest   # la carte la plus basse gagne
+java -cp target/classes fr.nice.jeu_carte.Main            # vue console, 52 cartes
+java -cp target/classes fr.nice.jeu_carte.Main swing      # vue Swing
+java -cp target/classes fr.nice.jeu_carte.Main lowest     # la carte la plus basse gagne
+java -cp target/classes fr.nice.jeu_carte.Main 32         # paquet de 32 cartes (du 7 à l'As)
+java -cp target/classes fr.nice.jeu_carte.Main swing 32 lowest   # les deux options
 ```
+
+Les arguments sont cumulables et dans n'importe quel ordre ; `Main` les traduit en
+une configuration de partie (voir `DeckBuilder` ci-dessous).
+
+## Tests
+
+```bash
+mvn -q clean test        # 67 tests JUnit 5 (Jupiter 5.10.2)
+```
+
+Les tests couvrent les modèles (`Card`, `Deck`, `Hand`, `Player`), les deux règles
+de victoire, la fabrique et le builder, et tout le flux du contrôleur avec une vue
+factice `RecordingView` (aucune saisie, aucune fenêtre).
 
 ## Dépannage
 
@@ -48,6 +63,7 @@ javap -verbose -cp target/classes fr.nice.jeu_carte.models.Player | grep "major 
 | Paquet | Rôle | Points du TD |
 |---|---|---|
 | `models` | `Rank`, `Color`, `Card`, `Deck`, `Hand`, `Player` | §2.1 – §2.4 |
+| `models.factory` | `DeckFactory` (Factory), `DeckType`, `DeckBuilder` + `GameSetup` (Builder) | [PAT] p.3 – p.6 |
 | `models.rules` | `WinnerRule` (Strategy) + `HighestCardWins`, `LowestCardWins` | §4.2 – §4.5 |
 | `controllers` | `GameController` : machine à états, `addPlayer`, `startGame`, `flipCards`, `evaluateWinner`, `rebuildDeck`, `runOneStep`, `addView` | §3, §4.5, §4.7 |
 | `views` | `GameViewable` (interface standard), `GameViewables` (composite) | §4.6, [PAT] p.7 |
@@ -56,8 +72,25 @@ javap -verbose -cp target/classes fr.nice.jeu_carte.models.Player | grep "major 
 | `views.adapter` | `GameViewAdapter` : rend `VueJeu` compatible avec `GameViewable` | [ADP] |
 
 Le contrôleur ne dépend **que** de `GameViewable` et d'une `WinnerRule` injectée ;
-il n'écrit jamais à l'écran. Le paquet de 52 cartes est construit par le
-contrôleur, la vue et la règle lui sont fournies depuis `Main`.
+il n'écrit jamais à l'écran. Il ne construit plus son paquet : il reçoit un
+`GameSetup` (paquet + règle) assemblé par le `DeckBuilder`, lequel délègue la
+création du paquet à la `DeckFactory`.
+
+```java
+// dans Main : seule la configuration change d'une partie à l'autre
+GameSetup setup = new DeckBuilder()
+        .size(Deck.SMALL_DECK_SIZE)          // 52 par défaut
+        .rule(new LowestCardWins())          // HighestCardWins par défaut
+        .build();
+GameController controller = new GameController(setup, views);
+```
+
+- `DeckType` énumère les paquets connus : `NORMAL_52`, `SMALL_32` (du 7 à l'As) et
+  `TEST` (un 10 par couleur, pratique pour tester l'égalité par la couleur) ;
+- `DeckFactory.makeDeck()` / `makeDeck(type)` produit un `Deck` sans que l'appelant
+  connaisse les boucles de construction ;
+- `DeckBuilder` enchaîne `.size(…)`, `.type(…)`, `.rule(…)` puis `.build()` et reste
+  réutilisable.
 
 ## Déroulement (machine à états)
 

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/
-  maven-4.0.0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <!-- l'identité du projet : groupId:artifactId:version = ses coordonnées -->
   <groupId>fr.nice.jeu-carte</groupId>
@@ -17,5 +16,28 @@
          sinon Maven échoue avec « release version 21 not supported ». -->
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.10.2</junit.version>
+    <surefire.version>3.2.5</surefire.version>
   </properties>
+
+  <!-- JUnit 5 : scope « test », donc absent du jar final (mvn package). -->
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- surefire ≥ 3 sait lancer la plateforme JUnit 5 (since 2.22 seulement pour JUnit 4) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+      </plugin>
+    </plugins>
+  </build>
 </project>
