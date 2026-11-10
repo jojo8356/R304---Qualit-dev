@@ -57,7 +57,7 @@ public class GameController {
      * {@link fr.nice.jeu_carte.models.factory.DeckBuilder} ([PAT] pages 5-6).
      */
     public GameController(GameSetup setup, GameViewable view) {
-        this(Objects.requireNonNull(setup, "setup").getDeck(), view, setup.getRule());
+        this(Objects.requireNonNull(setup, "setup").deck(), view, setup.rule());
     }
 
     public GameController(Deck deck, GameViewable view, WinnerRule rule) {

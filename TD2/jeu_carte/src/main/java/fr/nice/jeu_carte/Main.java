@@ -64,12 +64,9 @@ public final class Main {
 
         GameController controller = new GameController(setup, views);
 
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                swing.createAndShowGUI();
-                controller.runOneStep();
-            }
+        SwingUtilities.invokeLater(() -> {
+            swing.createAndShowGUI();
+            controller.runOneStep();
         });
     }
 

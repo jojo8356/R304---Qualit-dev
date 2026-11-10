@@ -4,8 +4,6 @@ import fr.nice.jeu_carte.controllers.GameController;
 import fr.nice.jeu_carte.views.GameViewable;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -57,51 +55,27 @@ public class GameSwing implements GameViewable {
     private void addAddPlayerButton(Container contentPane) {
         btnAddPlayer = new JButton("Ajouter un joueur");
         addCenteredComponent(btnAddPlayer, contentPane);
-        btnAddPlayer.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                appendText("Joueurs :");
-                executer(new Runnable() {
-                    @Override
-                    public void run() {
-                        controller.addPlayer("Joueur " + nextPlayerName++);
-                    }
-                });
-            }
+        btnAddPlayer.addActionListener(event -> {
+            appendText("Joueurs :");
+            executer(() -> controller.addPlayer("Joueur " + nextPlayerName++));
         });
     }
 
     private void addDealCardsButton(Container contentPane) {
         btnDealCards = new JButton("Distribuer les cartes");
         addCenteredComponent(btnDealCards, contentPane);
-        btnDealCards.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                appendText("Distribution :");
-                executer(new Runnable() {
-                    @Override
-                    public void run() {
-                        controller.startGame();
-                    }
-                });
-            }
+        btnDealCards.addActionListener(event -> {
+            appendText("Distribution :");
+            executer(controller::startGame);
         });
     }
 
     private void addFindWinnerButton(Container contentPane) {
         btnFindWinner = new JButton("Retourner les cartes");
         addCenteredComponent(btnFindWinner, contentPane);
-        btnFindWinner.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                appendText("Cartes retournées :");
-                executer(new Runnable() {
-                    @Override
-                    public void run() {
-                        controller.flipCards();
-                    }
-                });
-            }
+        btnFindWinner.addActionListener(event -> {
+            appendText("Cartes retournées :");
+            executer(controller::flipCards);
         });
     }
 
@@ -109,18 +83,10 @@ public class GameSwing implements GameViewable {
     private void addNewViewButton(Container contentPane) {
         btnNewView = new JButton("Ajouter une vue");
         addCenteredComponent(btnNewView, contentPane);
-        btnNewView.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                GameSwing nouvelleVue = new GameSwing();
-                nouvelleVue.createAndShowGUI();
-                executer(new Runnable() {
-                    @Override
-                    public void run() {
-                        controller.addView(nouvelleVue);
-                    }
-                });
-            }
+        btnNewView.addActionListener(event -> {
+            GameSwing nouvelleVue = new GameSwing();
+            nouvelleVue.createAndShowGUI();
+            executer(() -> controller.addView(nouvelleVue));
         });
     }
 

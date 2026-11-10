@@ -19,22 +19,22 @@ class DeckBuilderTest {
     void configurationParDefaut() {
         GameSetup setup = new DeckBuilder().build();
 
-        assertEquals(52, setup.getDeck().size());
-        assertInstanceOf(HighestCardWins.class, setup.getRule());
+        assertEquals(52, setup.deck().size());
+        assertInstanceOf(HighestCardWins.class, setup.rule());
     }
 
     @Test
     @DisplayName("size(32) produit un paquet de 32 cartes")
     void taille32() {
         GameSetup setup = new DeckBuilder().size(Deck.SMALL_DECK_SIZE).build();
-        assertEquals(32, setup.getDeck().size());
+        assertEquals(32, setup.deck().size());
     }
 
     @Test
     @DisplayName("size(52) produit un paquet de 52 cartes")
     void taille52() {
         GameSetup setup = new DeckBuilder().size(Deck.STANDARD_DECK_SIZE).build();
-        assertEquals(52, setup.getDeck().size());
+        assertEquals(52, setup.deck().size());
     }
 
     @Test
@@ -48,7 +48,7 @@ class DeckBuilderTest {
     void regleInjectee() {
         LowestCardWins regle = new LowestCardWins();
         GameSetup setup = new DeckBuilder().rule(regle).build();
-        assertEquals(regle, setup.getRule());
+        assertEquals(regle, setup.rule());
     }
 
     @Test
@@ -59,8 +59,8 @@ class DeckBuilderTest {
                 .type(DeckType.SMALL_32)
                 .build();
 
-        assertEquals(32, setup.getDeck().size());
-        assertInstanceOf(LowestCardWins.class, setup.getRule());
+        assertEquals(32, setup.deck().size());
+        assertInstanceOf(LowestCardWins.class, setup.rule());
     }
 
     @Test
@@ -70,9 +70,9 @@ class DeckBuilderTest {
         GameSetup premier = builder.build();
         GameSetup second = builder.build();
 
-        assertEquals(4, premier.getDeck().size());
-        assertEquals(4, second.getDeck().size());
-        assertTrue(premier.getDeck() != second.getDeck(), "deux paquets distincts");
+        assertEquals(4, premier.deck().size());
+        assertEquals(4, second.deck().size());
+        assertTrue(premier.deck() != second.deck(), "deux paquets distincts");
     }
 
     @Test
