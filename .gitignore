@@ -1,0 +1,4 @@
+# Sorties de build : ne jamais les versionner (elles contiennent des .class
+# liés à un JDK précis → source d'erreurs « UnsupportedClassVersionError »).
+target/
+*.class

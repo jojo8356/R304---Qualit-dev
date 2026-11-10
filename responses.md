@@ -911,7 +911,10 @@ java -cp target/classes fr.nice.jeu_carte.Main swing    # interface Swing
 ```
 
 Le `pom.xml` compile en `release 17` : le projet fonctionne aussi bien avec un
-JDK 17 qu'avec un JDK 21. Toujours lancer `mvn clean compile` après un changement
+JDK 17 qu'avec un JDK 21. Les sorties de build (`target/`, `.class`) ne sont plus
+versionnées (elles l'avaient été avec des classes compilées en Java 21, d'où des
+`UnsupportedClassVersionError` sur une seule classe) : après un `git pull`, faire
+un `rm -rf target` puis `mvn clean compile`. Toujours lancer `mvn clean compile` après un changement
 de JDK, sinon des `.class` produits par l'autre JDK provoquent un
 `UnsupportedClassVersionError` (Maven et `java` doivent utiliser le **même** JDK ;
 `mvn -v` indique celui de Maven).
