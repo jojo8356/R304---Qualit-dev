@@ -11,7 +11,11 @@
   <packaging>jar</packaging>
   <!-- deux propriétés qui évitent deux catégories entières de bugs -->
   <properties>
-    <maven.compiler.release>21</maven.compiler.release>
+    <!-- 17 = compilable et exécutable avec les JDK 17 et 21 installés en cours.
+         (Le code n'utilise aucune API au-delà de Java 17.)
+         Passer à 21 uniquement si tout le monde compile avec un JDK 21 :
+         sinon Maven échoue avec « release version 21 not supported ». -->
+    <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 </project>
